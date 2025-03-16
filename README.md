@@ -16,7 +16,7 @@ Bypasses Steam API dll integrity/size check by hooking CreateFile API.
 
 ### Method 2 (VersionShim) (x64 for pre-built version.dll)
 
-* Rename `SteamAPICheckBypass(_x32).dll` to `version.dll` and put it beside game exe.
+* Rename `SteamAPICheckBypass(_x32).dll` to `version.dll`/`winmm.dll`/`winhttp.dll` and put it beside game exe.
 
 ## Configuration (Optional)
 
@@ -37,7 +37,6 @@ Bypasses Steam API dll integrity/size check by hooking CreateFile API.
         "to": "game.exe.bak"
     }
 }
-  
 ```
 
 * `mode`: `file_redirect` or `file_hide`.
@@ -52,7 +51,6 @@ Bypasses Steam API dll integrity/size check by hooking CreateFile API.
 
 ## Dependencies
 
-* <https://github.com/Xpl0itR/VersionShim>
 * <https://github.com/otavepto/nt-fs-dupe>
 
 ## Bugs
