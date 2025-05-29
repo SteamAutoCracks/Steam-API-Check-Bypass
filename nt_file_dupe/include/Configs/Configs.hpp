@@ -49,6 +49,8 @@ namespace ntfsdupe::cfgs {
         unsigned short filename_bytes{};
 
 		HookTimes hook_times{ };
+
+		bool bypass_loadlibrary{ true }; // bypass LoadLibrary() for the file
     };
 
     // module operation/action type
@@ -70,6 +72,8 @@ namespace ntfsdupe::cfgs {
         std::wstring target_filename{};
 
         unsigned short filename_bytes{};
+
+        HookTimes hook_times{ };
     };
 
 
@@ -79,7 +83,7 @@ namespace ntfsdupe::cfgs {
 
     const std::wstring& get_exe_dir() noexcept;
 
-    bool add_entry(Mode mode, const std::wstring &original, const std::wstring &target = std::wstring(), bool file_must_exist = false, HookTimesMode hook_times_cfg = HookTimesMode::all, std::vector<uint64_t> hook_time_n = std::vector<uint64_t>());
+    bool add_entry(Mode mode, const std::wstring &original, const std::wstring &target = std::wstring(), bool file_must_exist = false, bool bypass_loadlibrary = true, HookTimesMode hook_times_cfg = HookTimesMode::all, std::vector<uint64_t> hook_time_n = std::vector<uint64_t>());
 
     bool load_file(const wchar_t *file);
 
@@ -95,5 +99,6 @@ namespace ntfsdupe::cfgs {
 
     bool is_count_bypass(const ntfsdupe::cfgs::FileCfgEntry* cfg) noexcept;
 
+    bool is_count_bypass(const ntfsdupe::cfgs::ModuleCfgEntry* cfg) noexcept;
 }
 

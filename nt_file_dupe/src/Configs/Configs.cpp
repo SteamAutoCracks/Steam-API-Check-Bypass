@@ -26,8 +26,8 @@ namespace ntfsdupe::cfgs {
     static std::unordered_map<DWORD, std::unordered_map<std::wstring_view, size_t>> bypass_entries{};
     static std::unordered_map<std::wstring_view, uint64_t> hook_times_entries{};
 
-    bool add_entry_file(Mode mode, const std::wstring& original, const std::wstring& target = std::wstring(), bool file_must_exist = false, HookTimesMode hook_times_cfg = HookTimesMode::all, std::vector<uint64_t> hook_time_n = std::vector<uint64_t>());
-    bool add_entry_module(Mode mode, const std::wstring& original, const std::wstring& target = std::wstring());
+    bool add_entry_file(Mode mode, const std::wstring& original, const std::wstring& target = std::wstring(), bool file_must_exist = false, bool bypass_loadlibrary = true, HookTimesMode hook_times_cfg = HookTimesMode::all, std::vector<uint64_t> hook_time_n = std::vector<uint64_t>());
+    bool add_entry_module(Mode mode, const std::wstring& original, const std::wstring& target = std::wstring(), HookTimesMode hook_times_cfg = HookTimesMode::all, std::vector<uint64_t> hook_time_n = std::vector<uint64_t>());
 }
 
 
@@ -74,7 +74,7 @@ const std::wstring& ntfsdupe::cfgs::get_exe_dir() noexcept
     return exe_dir;
 }
 
-bool ntfsdupe::cfgs::add_entry_file(Mode mode, const std::wstring& original, const std::wstring& target, bool file_must_exist, HookTimesMode hook_times_cfg, std::vector<uint64_t> hook_time_n)
+bool ntfsdupe::cfgs::add_entry_file(Mode mode, const std::wstring& original, const std::wstring& target, bool file_must_exist, bool bypass_loadlibrary, HookTimesMode hook_times_cfg, std::vector<uint64_t> hook_time_n)
 {
     std::wstring _original = ntfsdupe::helpers::to_absolute(original, exe_dir);
     NTFSDUPE_DBG(L"  absolute original file: '%s'", _original.c_str());
@@ -98,6 +98,7 @@ bool ntfsdupe::cfgs::add_entry_file(Mode mode, const std::wstring& original, con
         entry.original = _original;
         entry.original_filename = &entry.original[0] + filename_idx;
         entry.filename_bytes = filename_bytes;
+		entry.bypass_loadlibrary = bypass_loadlibrary;
     }
     return true;
 
@@ -129,6 +130,7 @@ bool ntfsdupe::cfgs::add_entry_file(Mode mode, const std::wstring& original, con
             entry.filename_bytes = filename_bytes;
 			entry.hook_times.mode = hook_times_cfg;
 			entry.hook_times.hook_time_n = hook_time_n;
+            entry.bypass_loadlibrary = bypass_loadlibrary;
 
             uint64_t hook_time = hook_times_entries[_original_upper_ref];
             hook_time = 0;
@@ -166,7 +168,7 @@ static void hide_module_in_peb(const std::wstring& original)
     }
 }
 
-bool ntfsdupe::cfgs::add_entry_module(Mode mode, const std::wstring& original, const std::wstring& target)
+bool ntfsdupe::cfgs::add_entry_module(Mode mode, const std::wstring& original, const std::wstring& target, HookTimesMode hook_times_cfg, std::vector<uint64_t> hook_time_n)
 {
     size_t bad_original_char = original.find_first_of(L"\\/");
     size_t bad_target_char = target.find_first_of(L"\\/");
@@ -194,6 +196,8 @@ bool ntfsdupe::cfgs::add_entry_module(Mode mode, const std::wstring& original, c
             
         entry.original_filename = original;
         entry.filename_bytes = filename_bytes;
+        entry.hook_times.mode = hook_times_cfg;
+        entry.hook_times.hook_time_n = hook_time_n;
     }
     return true;
 
@@ -211,6 +215,8 @@ bool ntfsdupe::cfgs::add_entry_module(Mode mode, const std::wstring& original, c
             entry.original_filename = original;
             entry.target_filename = target;
             entry.filename_bytes = filename_bytes;
+            entry.hook_times.mode = hook_times_cfg;
+            entry.hook_times.hook_time_n = hook_time_n;
         }
 
         {
@@ -230,7 +236,7 @@ bool ntfsdupe::cfgs::add_entry_module(Mode mode, const std::wstring& original, c
     return false;
 }
 
-bool ntfsdupe::cfgs::add_entry(Mode mode, const std::wstring &original, const std::wstring &target, bool file_must_exist, HookTimesMode hook_times_cfg, std::vector<uint64_t> hook_time_n)
+bool ntfsdupe::cfgs::add_entry(Mode mode, const std::wstring &original, const std::wstring &target, bool file_must_exist, bool bypass_loadlibrary, HookTimesMode hook_times_cfg, std::vector<uint64_t> hook_time_n)
 {
     NTFSDUPE_DBG(L"ntfsdupe::cfgs::add_entry() %i '%s' '%s'", (int)mode, original.c_str(), target.c_str());
 
@@ -249,12 +255,12 @@ bool ntfsdupe::cfgs::add_entry(Mode mode, const std::wstring &original, const st
         switch (mode) {
         case ntfsdupe::cfgs::Mode::file_hide:
         case ntfsdupe::cfgs::Mode::file_redirect:
-            return add_entry_file(mode, original, target, file_must_exist, hook_times_cfg, hook_time_n);
+            return add_entry_file(mode, original, target, file_must_exist, bypass_loadlibrary, hook_times_cfg, hook_time_n);
 
         case ntfsdupe::cfgs::Mode::module_prevent_load:
         case ntfsdupe::cfgs::Mode::module_hide_handle: 
         case ntfsdupe::cfgs::Mode::module_redirect:
-            return add_entry_module(mode, original, target);
+            return add_entry_module(mode, original, target, hook_times_cfg, hook_time_n);
 
         default: NTFSDUPE_DBG(L"  unknown entry mode %i", (int)mode); return false; // unknown type
         }
@@ -320,6 +326,9 @@ bool ntfsdupe::cfgs::load_file(const wchar_t *file)
                 bool file_must_exist = item.value().value("file_must_exist", false);
                 NTFSDUPE_DBG(L"  file_must_exist '%i'", (int)file_must_exist);
 
+                bool bypass_loadlibrary = item.value().value("bypass_loadlibrary", true);
+                NTFSDUPE_DBG(L"  bypass_loadlibrary '%i'", (int)bypass_loadlibrary);
+
                 HookTimesMode hook_times_cfg = HookTimesMode::all;
                 std::string hook_times_str = item.value().value("hook_times_mode", std::string());
                 if (hook_times_str.compare("all") == 0) {
@@ -340,7 +349,7 @@ bool ntfsdupe::cfgs::load_file(const wchar_t *file)
                             return a + (a.empty() ? L"" : L", ") + std::to_wstring(b);
                         }).c_str());
 
-                if (add_entry(mode, original, target, file_must_exist, hook_times_cfg, hook_time_n)) ++added_entries;
+                if (add_entry(mode, original, target, file_must_exist, bypass_loadlibrary, hook_times_cfg, hook_time_n)) ++added_entries;
             } catch (const std::exception &e) {
                 NTFSDUPE_DBG(e.what());
             }
@@ -361,7 +370,7 @@ const ntfsdupe::cfgs::FileCfgEntry* ntfsdupe::cfgs::find_file_entry(const std::w
     if (res == ntfsdupe::cfgs::file_entries.end()) {
         return nullptr;
     } else {
-        return is_bypassed(str)
+        return res->second.bypass_loadlibrary && is_bypassed(str)
             ? nullptr
             : &res->second;
     }
@@ -452,6 +461,39 @@ bool ntfsdupe::cfgs::is_count_bypass(const ntfsdupe::cfgs::FileCfgEntry* cfg) no
             }
             if (ret) {
                 NTFSDUPE_DBG(L"ntfsdupe::cfgs::is_count_bypass bypass hook file: '%s', current hook time: %d", cfg->original.c_str(), curr_hook_time_num->second);
+            }
+        }
+    }
+    LeaveCriticalSection(&hook_times_cs);
+
+    return ret;
+}
+
+bool ntfsdupe::cfgs::is_count_bypass(const ntfsdupe::cfgs::ModuleCfgEntry* cfg) noexcept
+{
+    bool ret = false;
+
+    if (cfg->hook_times.mode == HookTimesMode::all)
+    {
+        return false;
+    }
+
+    EnterCriticalSection(&hook_times_cs);
+    if (hook_times_entries.size()) {
+        auto curr_hook_time_num = hook_times_entries.find(ntfsdupe::helpers::upper(cfg->original_filename));
+        if (curr_hook_time_num != hook_times_entries.end()) {
+            curr_hook_time_num->second++;
+            auto found = std::find(cfg->hook_times.hook_time_n.begin(), cfg->hook_times.hook_time_n.end(), curr_hook_time_num->second) != cfg->hook_times.hook_time_n.end();
+            switch (cfg->hook_times.mode) {
+            case HookTimesMode::nth_time_only:
+                ret = !found;
+                break;
+            case HookTimesMode::not_nth_time_only:
+                ret = found;
+                break;
+            }
+            if (ret) {
+                NTFSDUPE_DBG(L"ntfsdupe::cfgs::is_count_bypass bypass hook file: '%s', current hook time: %d", cfg->original_filename.c_str(), curr_hook_time_num->second);
             }
         }
     }

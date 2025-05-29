@@ -12,6 +12,7 @@
 #else
 	#define NTFSDUPE_DECL __fastcall
 #endif
+#include <vector>
 
 
 // ntfsdupe::itf works for language >= C++17
@@ -27,6 +28,11 @@ namespace itf {
 		module_redirect,
 		module_hide_handle,
 	};
+	enum class HookTimesMode : char {
+		all,
+		nth_time_only,
+		not_nth_time_only,
+	};
 }
 }
 
@@ -34,7 +40,10 @@ NTFSDUPE_API bool NTFSDUPE_DECL ntfsdupe_add_entry(
 	ntfsdupe::itf::Mode mode,
 	const wchar_t *original,
 	const wchar_t *target,
-	bool file_must_exist
+	bool file_must_exist,
+	bool bypass_loadlibrary,
+	ntfsdupe::itf::HookTimesMode hook_times_cfg,
+	std::vector<uint64_t> hook_time_n
 );
 
 NTFSDUPE_API bool NTFSDUPE_DECL ntfsdupe_load_file(const wchar_t *file);

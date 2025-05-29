@@ -23,6 +23,14 @@ NTSTATUS NTAPI ntfsdupe::hooks::LdrLoadDll_hook(
 
             case ntfsdupe::cfgs::ModuleType::prevent_load:
             case ntfsdupe::cfgs::ModuleType::target: { // target files are invisible to the process
+                if (ntfsdupe::cfgs::is_count_bypass(cfg)) {
+                    return LdrLoadDll_original(
+                        DllCharacteristics,
+                        Unknown,
+                        DllName,
+                        BaseAddress
+                    );
+                }
                 NTFSDUPE_DBG(
                     L"ntfsdupe::hooks::LdrLoadDll_hook prevent_load/target '%s'",
                     std::wstring(DllName->Buffer, DllName->Length / sizeof(wchar_t)).c_str()
@@ -32,6 +40,14 @@ NTSTATUS NTAPI ntfsdupe::hooks::LdrLoadDll_hook(
             }
 
             case ntfsdupe::cfgs::ModuleType::original: {
+                if (ntfsdupe::cfgs::is_count_bypass(cfg)) {
+                    return LdrLoadDll_original(
+                        DllCharacteristics,
+                        Unknown,
+                        DllName,
+                        BaseAddress
+                    );
+                }
                 NTFSDUPE_DBG(
                     L"ntfsdupe::hooks::LdrLoadDll_hook original '%s'",
                     std::wstring(DllName->Buffer, DllName->Length / sizeof(wchar_t)).c_str()

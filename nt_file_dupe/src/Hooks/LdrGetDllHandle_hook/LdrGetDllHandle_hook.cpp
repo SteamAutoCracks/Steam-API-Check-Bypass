@@ -22,6 +22,14 @@ NTSTATUS NTAPI ntfsdupe::hooks::LdrGetDllHandle_hook(
             case ntfsdupe::cfgs::ModuleType::prevent_load: // this doesn't make sense here, but just in case
             case ntfsdupe::cfgs::ModuleType::target: // target modules are invisible to the process
             case ntfsdupe::cfgs::ModuleType::hide_handle: {
+                if (ntfsdupe::cfgs::is_count_bypass(cfg)) {
+                    return LdrGetDllHandle_original(
+                        DllPath,
+                        DllCharacteristics,
+                        DllName,
+                        DllHandle
+                    );
+                }
                 NTFSDUPE_DBG(
                     L"ntfsdupe::hooks::LdrGetDllHandle_hook prevent_load/target/hide_handle '%s'",
                     std::wstring(DllName->Buffer, DllName->Length / sizeof(wchar_t)).c_str()
@@ -31,6 +39,14 @@ NTSTATUS NTAPI ntfsdupe::hooks::LdrGetDllHandle_hook(
             }
 
             case ntfsdupe::cfgs::ModuleType::original: {
+                if (ntfsdupe::cfgs::is_count_bypass(cfg)) {
+                    return LdrGetDllHandle_original(
+                        DllPath,
+                        DllCharacteristics,
+                        DllName,
+                        DllHandle
+                    );
+                }
                 NTFSDUPE_DBG(
                     L"ntfsdupe::hooks::LdrGetDllHandle_hook original '%s'",
                     std::wstring(DllName->Buffer, DllName->Length / sizeof(wchar_t)).c_str()
