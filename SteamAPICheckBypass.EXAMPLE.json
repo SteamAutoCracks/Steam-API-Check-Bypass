@@ -4,11 +4,14 @@
       "mode": "file_redirect",
       "to": "steam_api64.dll.bak",
       "hook_times_mode": "nth_time_only",
-      "hook_time_n": [1,2,3]
+      "hook_time_n": [1,2,3],
+      "bypass_loadlibrary": true
     },
     "game.exe":
     {
         "mode": "file_redirect",
-        "to": "game.exe.bak"
+        "to": "game.exe.bak",
+        "hook_times_mode": "nth_time_only",
+        "hook_time_n": [1,2,3]
     }
 }

@@ -29,12 +29,15 @@ Bypasses Steam API dll integrity/size check by hooking CreateFile API.
       "mode": "file_redirect",
       "to": "steam_api64.dll.bak",
       "hook_times_mode": "nth_time_only",
-      "hook_time_n": [1,2,3]
+      "hook_time_n": [1,2,3],
+      "bypass_loadlibrary": true
     },
     "game.exe":
     {
         "mode": "file_redirect",
-        "to": "game.exe.bak"
+        "to": "game.exe.bak",
+        "hook_times_mode": "nth_time_only",
+        "hook_time_n": [1,2,3]
     }
 }
 ```
@@ -43,6 +46,7 @@ Bypasses Steam API dll integrity/size check by hooking CreateFile API.
 * `to` : The target file relative path.
 * `hook_times_mode`: `all`, `nth_time_only` or `not_nth_time_only`.
 * `hook_time_n`: The list of nth time to hook / not hook. (Start from 1, LoadLibrary triggered hook is not counted)
+* `bypass_loadlibrary`: Bypass loadlibrary caused file read request.
 * The `hook time` option is useful for custom requirements.
 
 ## Internal Process
